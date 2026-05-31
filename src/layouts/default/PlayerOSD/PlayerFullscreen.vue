@@ -586,6 +586,7 @@ import {
   ImageColorPalette,
   formatDuration,
   getMediaImageUrl,
+  getMediaItemRoute,
   getPlayerName,
   sleep,
 } from "@/helpers/utils";
@@ -921,13 +922,7 @@ const showExpandedPlayerSelectButton = computed(() => {
 const itemClick = function (item: MediaItemType) {
   // mediaItem in the list is clicked
   store.showFullscreenPlayer = false;
-  router.push({
-    name: item.media_type,
-    params: {
-      itemId: item.item_id,
-      provider: item.provider,
-    },
-  });
+  router.push(getMediaItemRoute(item));
 };
 
 // Helper to parse a Music Assistant URI
@@ -1166,13 +1161,7 @@ const onArtistClick = async function () {
   ) {
     // Navigate directly to artist detail page
     store.showFullscreenPlayer = false;
-    router.push({
-      name: "artist",
-      params: {
-        itemId: mediaItem.artists[0].item_id,
-        provider: mediaItem.artists[0].provider,
-      },
-    });
+    router.push(getMediaItemRoute(mediaItem.artists[0]));
   } else {
     // Radio or non-library item - try to find in library first
     try {
@@ -1201,13 +1190,7 @@ const onArtistClick = async function () {
 
         // Found in library! Navigate to it
         store.showFullscreenPlayer = false;
-        router.push({
-          name: "artist",
-          params: {
-            itemId: bestMatch.item_id,
-            provider: bestMatch.provider,
-          },
-        });
+        router.push(getMediaItemRoute(bestMatch));
         return;
       }
     } catch (error) {

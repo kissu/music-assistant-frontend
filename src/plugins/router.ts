@@ -122,6 +122,15 @@ const routes: RouteRecordRaw[] = [
             props: true,
           },
           {
+            path: "library/:itemId",
+            name: "libraryartist",
+            component: () =>
+              import(
+                /* webpackChunkName: "artist" */ "@/views/LibraryArtistDetails.vue"
+              ),
+            props: true,
+          },
+          {
             path: ":provider/:itemId",
             name: "artist",
             component: () =>

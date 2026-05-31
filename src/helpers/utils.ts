@@ -820,6 +820,24 @@ export const handlePlayBtnClick = function (
   showPlayMenuForMediaItem(item, parentItem, posX, posY);
 };
 
+/* Resolve the details-view route for a media item.
+   Library artists have a dedicated view (libraryartist), separate from the
+   per-provider artist view. The two routes share the /artists/library/:itemId
+   URL space, so we must navigate by the correct name to stay consistent on
+   reload. */
+export const getMediaItemRoute = function (item: MediaItemTypeOrItemMapping): {
+  name: string;
+  params: Record<string, string>;
+} {
+  if (item.media_type == MediaType.ARTIST && item.provider == "library") {
+    return { name: "libraryartist", params: { itemId: item.item_id } };
+  }
+  return {
+    name: item.media_type,
+    params: { itemId: item.item_id, provider: item.provider },
+  };
+};
+
 /* Handle media item click */
 export const handleMediaItemClick = function (
   item: MediaItemTypeOrItemMapping,
@@ -852,13 +870,7 @@ export const handleMediaItemClick = function (
   }
 
   // all other: go to details view
-  router.push({
-    name: item.media_type,
-    params: {
-      itemId: item.item_id,
-      provider: item.provider,
-    },
-  });
+  router.push(getMediaItemRoute(item));
 };
 
 /* Handle menu button click */

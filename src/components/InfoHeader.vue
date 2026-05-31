@@ -427,6 +427,7 @@ import {
   getGenreDescription,
   getGenreDisplayName,
   getImageThumbForItem,
+  getMediaItemRoute,
   handleMediaItemClick,
   handlePlayBtnClick,
   markdownToHtml,
@@ -575,14 +576,8 @@ const albumClick = function (item: Album | ItemMapping) {
   });
 };
 const artistClick = function (item: Artist | ItemMapping) {
-  // album entry clicked
-  router.push({
-    name: "artist",
-    params: {
-      itemId: item.item_id,
-      provider: item.provider,
-    },
-  });
+  // artist entry clicked
+  router.push(getMediaItemRoute(item));
 };
 
 const backButtonClick = function () {

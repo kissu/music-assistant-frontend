@@ -5,6 +5,7 @@
     <Toolbar
       :icon="icon"
       :title="title"
+      :subtitle="subtitle"
       :count="params.search ? pagedItems.length : total || allItems.length"
       color="transparent"
       :menu-items="menuItems"
@@ -296,6 +297,7 @@ export interface Props {
   showProviderFilter?: boolean;
   updateAvailable?: boolean;
   title?: string;
+  subtitle?: string;
   hideOnEmpty?: boolean;
   showLibraryOnlyFilter?: boolean;
   showGenreFilter?: boolean;
@@ -338,6 +340,7 @@ const props = withDefaults(defineProps<Props>(), {
   total: undefined,
   infiniteScroll: true,
   title: undefined,
+  subtitle: undefined,
   showLibraryOnlyFilter: false,
   showGenreFilter: false,
   showHideEmptyFilter: false,

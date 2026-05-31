@@ -2,80 +2,77 @@
   <section>
     <InfoHeader :item="itemDetails" />
     <ProviderLinkHint
-      :text="$t('artist_in_library', [providerName])"
-      icon="mdi-bookshelf"
-      :links="libraryLink"
+      :text="$t('discover_more_on')"
+      icon="mdi-compass-outline"
+      :links="streamingLinks"
     />
     <ItemsListing
-      v-if="itemDetails && !loading && hasAlbums"
-      itemtype="artistalbums"
+      v-if="itemDetails && !loading"
+      itemtype="libraryartistalbums"
       :parent-item="itemDetails"
-      :show-provider="false"
-      :show-favorites-only-filter="false"
+      :show-favorites-only-filter="true"
       :show-album-type-filter="true"
       :show-refresh-button="false"
       :load-items="loadArtistAlbums"
       :sort-keys="[
-        'name',
         'sort_name',
+        'name',
         'year',
         'name_desc',
         'sort_name_desc',
         'year_desc',
       ]"
       :title="$t('albums')"
-      :subtitle="$t('on_provider', [providerName])"
+      :subtitle="$t('in_library')"
       :allow-collapse="true"
     />
     <ItemsListing
-      v-if="itemDetails && !loading && hasTracks"
-      itemtype="artisttracks"
+      v-if="itemDetails && !loading"
+      itemtype="libraryartisttracks"
       :parent-item="itemDetails"
-      :show-provider="false"
-      :show-favorites-only-filter="false"
-      :show-provider-filter="false"
+      :show-favorites-only-filter="true"
       :show-refresh-button="false"
       :show-track-number="false"
       :load-items="loadArtistTracks"
       :sort-keys="[
-        'original',
-        'name',
         'sort_name',
+        'name',
         'album',
         'album_sort_name',
         'duration',
         'name_desc',
         'sort_name_desc',
         'duration_desc',
+        'playcount',
+        'playcount_desc',
       ]"
       :title="$t('tracks')"
-      :subtitle="$t('on_provider', [providerName])"
+      :subtitle="$t('in_library')"
       :allow-collapse="true"
     />
     <!-- top albums -->
     <ItemsListing
-      v-if="itemDetails && !loading && hasTopAlbums"
+      v-if="itemDetails && !loading"
       itemtype="artistalbums"
       path="artisttopalbums"
       :parent-item="itemDetails"
-      :show-provider="false"
+      :show-provider="true"
       :show-favorites-only-filter="false"
       :show-library-only-filter="false"
       :show-refresh-button="false"
       :load-items="loadArtistTopAlbums"
       :sort-keys="['original', 'name', 'year', 'year_desc']"
       :title="$t('artist_topalbums')"
-      :subtitle="$t('on_provider', [providerName])"
       :allow-collapse="true"
       :hide-on-empty="true"
     />
     <!-- top tracks -->
     <ItemsListing
-      v-if="itemDetails && !loading && hasTopTracks"
+      v-if="itemDetails && !loading"
       itemtype="artisttracks"
       path="artisttoptracks"
       :parent-item="itemDetails"
-      :show-provider="false"
+      :show-provider="true"
       :show-favorites-only-filter="false"
       :show-library-only-filter="false"
       :show-refresh-button="false"
@@ -83,13 +80,12 @@
       :load-items="loadArtistTopTracks"
       :sort-keys="['original', 'name', 'duration', 'duration_desc']"
       :title="$t('artist_toptracks')"
-      :subtitle="$t('on_provider', [providerName])"
       :allow-collapse="true"
       :hide-on-empty="true"
     />
     <!-- similar artists -->
     <ItemsListing
-      v-if="itemDetails && !loading && hasSimilarArtists"
+      v-if="itemDetails && !loading"
       itemtype="similarartists"
       :parent-item="itemDetails"
       :show-provider="false"
@@ -99,30 +95,43 @@
       :load-items="loadSimilarArtists"
       :title="$t('similar_artists')"
       :allow-collapse="true"
+      :hide-on-empty="true"
     />
+    <!-- media images -->
+    <MediaItemImages
+      v-if="
+        itemDetails?.provider == 'library' &&
+        itemDetails?.metadata?.images &&
+        authManager.isAdmin()
+      "
+      v-model="itemDetails.metadata.images"
+      @update:model-value="UpdateItemInDb"
+    />
+    <!-- provider mapping details -->
+    <ProviderDetails v-if="itemDetails" :item-details="itemDetails" />
   </section>
 </template>
 
 <script setup lang="ts">
 import InfoHeader from "@/components/InfoHeader.vue";
 import ItemsListing, { LoadDataParams } from "@/components/ItemsListing.vue";
+import MediaItemImages from "@/components/MediaItemImages.vue";
+import ProviderDetails from "@/components/ProviderDetails.vue";
 import ProviderLinkHint, {
   ProviderLink,
 } from "@/components/ProviderLinkHint.vue";
 import { api } from "@/plugins/api";
-import { useI18n } from "vue-i18n";
+import { authManager } from "@/plugins/auth";
 import {
   EventMessage,
   EventType,
   MediaItemType,
-  ProviderFeature,
   type Artist,
 } from "@/plugins/api/interfaces";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 
 export interface Props {
   itemId: string;
-  provider: string;
 }
 const props = defineProps<Props>();
 const itemDetails = ref<Artist>();
@@ -130,7 +139,7 @@ const loading = ref(false);
 
 const loadItemDetails = async function () {
   loading.value = true;
-  itemDetails.value = await api.getArtist(props.itemId, props.provider);
+  itemDetails.value = await api.getArtist(props.itemId, "library");
   loading.value = false;
 };
 
@@ -154,76 +163,63 @@ onMounted(() => {
         loading.value = true;
         itemDetails.value = updatedItem as Artist;
         loading.value = false;
-      } else if ("provider_mappings" in updatedItem) {
-        for (const provMap of updatedItem.provider_mappings) {
-          if (
-            provMap.item_id == props.itemId &&
-            [provMap.provider_instance, provMap.provider_domain].includes(
-              props.provider,
-            )
-          ) {
-            loading.value = true;
-            itemDetails.value = updatedItem as Artist;
-            loading.value = false;
-            break;
-          }
-        }
       }
     },
   );
   onBeforeUnmount(unsub);
 });
 
-const { t } = useI18n();
-
-const libraryLink = computed<ProviderLink[]>(() => {
-  // when the requested artist is already in the library, the backend
-  // auto-resolves it to the library version (provider == "library")
-  if (itemDetails.value?.provider !== "library") return [];
-  return [
-    {
-      text: t("view_in_library"),
+const streamingLinks = computed<ProviderLink[]>(() => {
+  if (!itemDetails.value) return [];
+  const seen = new Set<string>();
+  const links: ProviderLink[] = [];
+  for (const mapping of itemDetails.value.provider_mappings) {
+    if (!mapping.available) continue;
+    if (seen.has(mapping.provider_instance)) continue;
+    const provider = api.getProvider(mapping.provider_instance);
+    if (!provider?.is_streaming_provider) continue;
+    seen.add(mapping.provider_instance);
+    links.push({
+      text: provider.name,
       to: {
-        name: "libraryartist",
-        params: { itemId: itemDetails.value.item_id },
+        name: "artist",
+        params: {
+          itemId: mapping.item_id,
+          provider: mapping.provider_instance,
+        },
       },
-    },
-  ];
+    });
+  }
+  return links;
 });
 
-const itemProvider = computed(() => api.getProvider(props.provider));
-
-const providerName = computed(() => itemProvider.value?.name || props.provider);
-
-const hasFeature = (feature: ProviderFeature) =>
-  computed(
-    () => itemProvider.value?.supported_features.includes(feature) === true,
-  );
-
-const hasAlbums = hasFeature(ProviderFeature.ARTIST_ALBUMS);
-const hasTracks = hasFeature(ProviderFeature.ARTIST_TRACKS);
-const hasSimilarArtists = hasFeature(ProviderFeature.SIMILAR_ARTISTS);
-const hasTopTracks = hasFeature(ProviderFeature.ARTIST_TOPTRACKS);
-const hasTopAlbums = hasFeature(ProviderFeature.ARTIST_TOPALBUMS);
-
 const loadArtistAlbums = async function (_params: LoadDataParams) {
-  return await api.getArtistAlbums(props.itemId, props.provider);
+  return await api.getArtistAlbums(props.itemId, "library");
 };
 
 const loadArtistTopAlbums = async function (_params: LoadDataParams) {
-  return await api.getArtistTopAlbums(props.itemId, props.provider);
+  return await api.getArtistTopAlbums(props.itemId, "library");
+};
+
+const loadArtistTopTracks = async function (_params: LoadDataParams) {
+  return await api.getArtistTopTracks(props.itemId, "library");
 };
 
 const loadSimilarArtists = async function (_params: LoadDataParams) {
   if (!itemDetails.value) return [];
-  return await api.getSimilarArtists(props.itemId, props.provider);
+  return await api.getSimilarArtists(props.itemId, "library");
 };
 
-const loadArtistTracks = async function (_params: LoadDataParams) {
-  return await api.getArtistTracks(props.itemId, props.provider);
+const loadArtistTracks = async function (params: LoadDataParams) {
+  return await api.getArtistTracks(props.itemId, "library");
 };
 
-const loadArtistTopTracks = async function (_params: LoadDataParams) {
-  return await api.getArtistTopTracks(props.itemId, props.provider);
+const UpdateItemInDb = async function () {
+  if (!itemDetails.value) return;
+  itemDetails.value = await api.sendCommand("music/artists/update", {
+    item_id: itemDetails.value.item_id,
+    update: itemDetails.value,
+    overwrite: true,
+  });
 };
 </script>

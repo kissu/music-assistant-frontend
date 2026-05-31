@@ -96,6 +96,7 @@ import {
 import { eventbus } from "@/plugins/eventbus";
 import router from "@/plugins/router";
 import { store } from "@/plugins/store";
+import { getMediaItemRoute } from "@/helpers/utils";
 import {
   EllipsisIcon,
   Gauge,
@@ -208,11 +209,7 @@ const onShowInfo = () => {
   const query = currentTrack.value?.album?.uri
     ? { album: currentTrack.value.album.uri }
     : {};
-  router.push({
-    name: item.media_type,
-    params: { itemId: item.item_id, provider: item.provider },
-    query,
-  });
+  router.push({ ...getMediaItemRoute(item), query });
 };
 
 const onToggleFavorite = () => {

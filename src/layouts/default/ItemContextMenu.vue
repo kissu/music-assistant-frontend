@@ -217,7 +217,7 @@ const playMenuHeaderClicked = function (evt: MouseEvent | KeyboardEvent) {
 
 import router from "@/plugins/router";
 
-import { playerVisible } from "@/helpers/utils";
+import { getMediaItemRoute, playerVisible } from "@/helpers/utils";
 import { itemIsAvailable } from "@/plugins/api/helpers";
 import {
   Album,
@@ -475,13 +475,7 @@ export const getContextMenuItems = async function (
         label: "goto_artist",
         labelArgs: [artist.name],
         action: () => {
-          router.push({
-            name: "artist",
-            params: {
-              itemId: artist.item_id,
-              provider: artist.provider,
-            },
-          });
+          router.push(getMediaItemRoute(artist));
         },
         icon: "mdi-account-music",
       });
