@@ -210,7 +210,7 @@ const loadSimilarArtists = async function (_params: LoadDataParams) {
   return await api.getSimilarArtists(props.itemId, "library");
 };
 
-const loadArtistTracks = async function (params: LoadDataParams) {
+const loadArtistTracks = async function (_params: LoadDataParams) {
   return await api.getArtistTracks(props.itemId, "library");
 };
 
