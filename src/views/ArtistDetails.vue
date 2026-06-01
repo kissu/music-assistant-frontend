@@ -1,11 +1,7 @@
 <template>
   <section>
     <InfoHeader :item="itemDetails" />
-    <ProviderLinkHint
-      :text="$t('artist_in_library', [providerName])"
-      icon="mdi-bookshelf"
-      :links="libraryLink"
-    />
+    <ArtistViewSwitcher :scopes="scopes" :active-key="activeKey" />
     <ItemsListing
       v-if="itemDetails && !loading && hasAlbums"
       itemtype="artistalbums"
@@ -104,13 +100,11 @@
 </template>
 
 <script setup lang="ts">
+import ArtistViewSwitcher from "@/components/ArtistViewSwitcher.vue";
 import InfoHeader from "@/components/InfoHeader.vue";
 import ItemsListing, { LoadDataParams } from "@/components/ItemsListing.vue";
-import ProviderLinkHint, {
-  ProviderLink,
-} from "@/components/ProviderLinkHint.vue";
+import { useArtistScopes } from "@/composables/useArtistScopes";
 import { api } from "@/plugins/api";
-import { useI18n } from "vue-i18n";
 import {
   EventMessage,
   EventType,
@@ -174,22 +168,10 @@ onMounted(() => {
   onBeforeUnmount(unsub);
 });
 
-const { t } = useI18n();
-
-const libraryLink = computed<ProviderLink[]>(() => {
-  // when the requested artist is already in the library, the backend
-  // auto-resolves it to the library version (provider == "library")
-  if (itemDetails.value?.provider !== "library") return [];
-  return [
-    {
-      text: t("view_in_library"),
-      to: {
-        name: "libraryartist",
-        params: { itemId: itemDetails.value.item_id },
-      },
-    },
-  ];
-});
+const { scopes, activeKey } = useArtistScopes(
+  itemDetails,
+  () => props.provider,
+);
 
 const itemProvider = computed(() => api.getProvider(props.provider));
 

@@ -1,11 +1,7 @@
 <template>
   <section>
     <InfoHeader :item="itemDetails" />
-    <ProviderLinkHint
-      :text="$t('discover_more_on')"
-      icon="mdi-compass-outline"
-      :links="streamingLinks"
-    />
+    <ArtistViewSwitcher :scopes="scopes" :active-key="activeKey" />
     <ItemsListing
       v-if="itemDetails && !loading"
       itemtype="libraryartistalbums"
@@ -113,13 +109,12 @@
 </template>
 
 <script setup lang="ts">
+import ArtistViewSwitcher from "@/components/ArtistViewSwitcher.vue";
 import InfoHeader from "@/components/InfoHeader.vue";
 import ItemsListing, { LoadDataParams } from "@/components/ItemsListing.vue";
 import MediaItemImages from "@/components/MediaItemImages.vue";
 import ProviderDetails from "@/components/ProviderDetails.vue";
-import ProviderLinkHint, {
-  ProviderLink,
-} from "@/components/ProviderLinkHint.vue";
+import { useArtistScopes } from "@/composables/useArtistScopes";
 import { api } from "@/plugins/api";
 import { authManager } from "@/plugins/auth";
 import {
@@ -128,7 +123,7 @@ import {
   MediaItemType,
   type Artist,
 } from "@/plugins/api/interfaces";
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 
 export interface Props {
   itemId: string;
@@ -169,29 +164,7 @@ onMounted(() => {
   onBeforeUnmount(unsub);
 });
 
-const streamingLinks = computed<ProviderLink[]>(() => {
-  if (!itemDetails.value) return [];
-  const seen = new Set<string>();
-  const links: ProviderLink[] = [];
-  for (const mapping of itemDetails.value.provider_mappings) {
-    if (!mapping.available) continue;
-    if (seen.has(mapping.provider_instance)) continue;
-    const provider = api.getProvider(mapping.provider_instance);
-    if (!provider?.is_streaming_provider) continue;
-    seen.add(mapping.provider_instance);
-    links.push({
-      text: provider.name,
-      to: {
-        name: "artist",
-        params: {
-          itemId: mapping.item_id,
-          provider: mapping.provider_instance,
-        },
-      },
-    });
-  }
-  return links;
-});
+const { scopes, activeKey } = useArtistScopes(itemDetails, () => "library");
 
 const loadArtistAlbums = async function (_params: LoadDataParams) {
   return await api.getArtistAlbums(props.itemId, "library");
