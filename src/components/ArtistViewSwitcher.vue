@@ -1,5 +1,5 @@
 <template>
-  <div v-if="scopes.length > 1" class="artist-view-switcher">
+  <div v-if="scopes.length > 1" ref="containerRef" class="artist-view-switcher">
     <!-- hidden row used only to measure natural tab widths -->
     <div
       ref="measureRef"
@@ -85,6 +85,7 @@ const onSelect = (value: string | number) => {
 // provider is always shown), then a "More" dropdown for the rest.
 const LIBRARY_KEY = "library";
 const measureRef = ref<HTMLElement>();
+const containerRef = ref<HTMLElement>();
 const { width: windowWidth } = useWindowSize();
 const providerVisibleCount = ref(props.scopes.length);
 
@@ -112,7 +113,10 @@ const recompute = () => {
   const moreWidth = (spans[all.length]?.offsetWidth ?? 60) + MORE_ICON;
 
   const libWidth = hasLibrary.value ? (widthByKey.get(LIBRARY_KEY) ?? 0) : 0;
-  const avail = windowWidth.value - SIDE_MARGIN;
+  // measure against the actual container (the app sidebar shrinks the
+  // content area), falling back to the window width pre-mount
+  const avail =
+    containerRef.value?.clientWidth ?? windowWidth.value - SIDE_MARGIN;
 
   // do all tabs fit with no More button?
   const gapCount = (hasLibrary.value ? 1 : 0) + providers.value.length - 1;
@@ -145,6 +149,8 @@ const recompute = () => {
 };
 
 useResizeObserver(measureRef, recompute);
+// container resize covers both window resizes and sidebar expand/collapse
+useResizeObserver(containerRef, recompute);
 watch(windowWidth, recompute);
 watch(
   () => props.scopes.map((s) => s.key).join("|"),
