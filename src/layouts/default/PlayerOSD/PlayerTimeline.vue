@@ -128,6 +128,11 @@ const isThumbHidden = ref(true);
 const isDragging = ref(false);
 const curTimeValue = ref(0);
 const tempTime = ref(0);
+// After a seek, hold the slider at the target until the backend's elapsed time
+// catches up, so it doesn't briefly snap back to the pre-seek position while
+// the stream restarts.
+const pendingSeek = ref<number | null>(null);
+let pendingSeekTimer: ReturnType<typeof setTimeout> | null = null;
 // ticking ref to force recompute of elapsed time (Date.now() is non-reactive)
 // rAF drives smooth 60fps slider movement; a 1s interval keeps text
 // labels up-to-date when the tab is backgrounded (rAF pauses).
@@ -177,6 +182,7 @@ const stopTick = () => {
 
 onUnmounted(() => {
   stopTick();
+  if (pendingSeekTimer) clearTimeout(pendingSeekTimer);
 });
 
 // computed properties
@@ -314,20 +320,34 @@ const chapterTicks = computed(() =>
 
 //watch
 watch(computedElapsedTime, (newTime) => {
-  if (!isDragging.value) {
-    curTimeValue.value = newTime;
+  if (isDragging.value) return;
+  if (pendingSeek.value !== null) {
+    // Ignore stale pre-seek values; release once the backend confirms (±2s).
+    if (Math.abs(newTime - pendingSeek.value) > 2) return;
+    pendingSeek.value = null;
+    if (pendingSeekTimer) {
+      clearTimeout(pendingSeekTimer);
+      pendingSeekTimer = null;
+    }
   }
+  curTimeValue.value = newTime;
 });
 
 // methods
 const stopDragging = () => {
   isDragging.value = false;
-  if (store.activePlayer) {
-    api.playerCommandSeek(
-      store.activePlayer.player_id,
-      Math.round(tempTime.value),
-    );
-  }
+  if (!store.activePlayer) return;
+  const target = Math.round(tempTime.value);
+  // Optimistic: show the target immediately and hold it until the backend
+  // reports a matching elapsed time (or the safety timeout fires).
+  curTimeValue.value = target;
+  pendingSeek.value = target;
+  if (pendingSeekTimer) clearTimeout(pendingSeekTimer);
+  pendingSeekTimer = setTimeout(() => {
+    pendingSeek.value = null;
+    pendingSeekTimer = null;
+  }, 3000);
+  api.playerCommandSeek(store.activePlayer.player_id, target);
 };
 
 const chapterClicked = function (chapter: MediaItemChapter) {
